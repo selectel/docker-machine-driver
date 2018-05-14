@@ -1,4 +1,4 @@
-plugin_name = 'selectel'
+plugin_name = selectel
 
 clean:
 	rm -rf bin/$(plugin_name)
