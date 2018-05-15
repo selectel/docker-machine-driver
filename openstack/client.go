@@ -10,8 +10,9 @@ import (
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/blockstorage/v2/volumes"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/floatingips"
+	cmp_fips "github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/floatingips"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
 )
 
 type Client interface {
@@ -24,12 +25,14 @@ type Client interface {
 	WaitForServerStatus(serverID, status string) error
 
 	AttachFloatingIP(serverID, floatingIP string) error
+	GetAllFloatingIP() ([]floatingips.FloatingIP, error)
 }
 
 type GenericClient struct {
 	Provider     *gophercloud.ServiceClient
 	Compute      *gophercloud.ServiceClient
 	BlockStorage *gophercloud.ServiceClient
+	Network      *gophercloud.ServiceClient
 }
 
 func NewClient(opts gophercloud.AuthOptions, region string) (Client, error) {
@@ -52,6 +55,7 @@ func NewClient(opts gophercloud.AuthOptions, region string) (Client, error) {
 		return nil, err
 	}
 
+	networkClient, err := openstack.NewNetworkV2(provider, endpointOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -59,6 +63,7 @@ func NewClient(opts gophercloud.AuthOptions, region string) (Client, error) {
 	return &GenericClient{
 		Compute:      computeClient,
 		BlockStorage: blockStorageClient,
+		Network:      networkClient,
 	}, nil
 }
 
@@ -113,8 +118,21 @@ func (client *GenericClient) WaitForServerStatus(serverID, status string) error 
 }
 
 func (client *GenericClient) AttachFloatingIP(serverID, floatingIP string) error {
-	opts := floatingips.AssociateOpts{
+	opts := cmp_fips.AssociateOpts{
 		FloatingIP: floatingIP,
 	}
-	return floatingips.AssociateInstance(client.Compute, serverID, opts).Err
+	return cmp_fips.AssociateInstance(client.Compute, serverID, opts).Err
+}
+
+func (client *GenericClient) GetAllFloatingIP() ([]floatingips.FloatingIP, error) {
+	opts := floatingips.ListOpts{
+		Status: "down",
+	}
+
+	allPages, err := floatingips.List(client.Network, opts).AllPages()
+	if err != nil {
+		return nil, err
+	}
+
+	return floatingips.ExtractFloatingIPs(allPages)
 }
