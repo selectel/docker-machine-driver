@@ -23,6 +23,7 @@ type Client interface {
 	BootInstanceFromVolume(opts servers.CreateOptsBuilder) (*servers.Server, error)
 	DeleteServer(serverID string) error
 	WaitForServerStatus(serverID, status string) error
+	SetServerPassword(serverID string, password string) error
 
 	AttachFloatingIP(serverID, floatingIP string) error
 	GetAllFloatingIP() ([]floatingips.FloatingIP, error)
@@ -115,6 +116,10 @@ func (client *GenericClient) WaitForServerStatus(serverID, status string) error 
 
 		return false, nil
 	}, 10, 4*time.Second)
+}
+
+func (client *GenericClient) SetServerPassword(serverID string, password string) error {
+	return servers.ChangeAdminPassword(client.Compute, serverID, password).ExtractErr()
 }
 
 func (client *GenericClient) AttachFloatingIP(serverID, floatingIP string) error {
