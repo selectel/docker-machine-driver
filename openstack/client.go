@@ -32,29 +32,26 @@ type GenericClient struct {
 	BlockStorage *gophercloud.ServiceClient
 }
 
-const (
-	ComputeEndpointType = "compute"
-	VolumeEndpointType  = "volumev2"
-)
-
 func NewClient(opts gophercloud.AuthOptions, region string) (Client, error) {
+	endpointOpts := gophercloud.EndpointOpts{
+		Region: region,
+	}
+
 	provider, err := openstack.AuthenticatedClient(opts)
 	if err != nil {
 		return nil, err
 	}
 
-	blockStorageClient, err := openstack.NewBlockStorageV2(provider, gophercloud.EndpointOpts{
-		Region: region,
-		Type:   VolumeEndpointType,
-	})
+	blockStorageClient, err := openstack.NewBlockStorageV2(provider, endpointOpts)
 	if err != nil {
 		return nil, err
 	}
 
-	computeClient, err := openstack.NewComputeV2(provider, gophercloud.EndpointOpts{
-		Region: region,
-		Type:   ComputeEndpointType,
-	})
+	computeClient, err := openstack.NewComputeV2(provider, endpointOpts)
+	if err != nil {
+		return nil, err
+	}
+
 	if err != nil {
 		return nil, err
 	}
