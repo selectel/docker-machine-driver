@@ -1,7 +1,6 @@
 package openstack
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -22,7 +21,6 @@ type Client interface {
 
 	BootInstanceFromVolume(opts servers.CreateOptsBuilder) (*servers.Server, error)
 	DeleteServer(serverID string) error
-	WaitForServerStatus(serverID, status string) error
 	SetServerPassword(serverID string, password string) error
 
 	AttachFloatingIP(serverID, floatingIP string) error
@@ -99,23 +97,6 @@ func (client *GenericClient) DeleteServer(serverID string) error {
 	return servers.Delete(client.Compute, serverID).Err
 }
 
-func (client *GenericClient) WaitForServerStatus(serverID, status string) error {
-	return mcnutils.WaitForSpecificOrError(func() (bool, error) {
-		server, err := servers.Get(client.Compute, serverID).Extract()
-		if err != nil {
-			return true, err
-		}
-
-		if strings.ToLower(server.Status) == "error" {
-			return true, fmt.Errorf("Instance creation failed. Instance is in ERROR state")
-		}
-
-		if strings.ToLower(server.Status) == status {
-			return true, nil
-		}
-
-		return false, nil
-	}, 10, 4*time.Second)
 }
 
 func (client *GenericClient) SetServerPassword(serverID string, password string) error {
