@@ -11,9 +11,6 @@ type Driver struct {
 	ResellAPIToken string
 }
 
-const (
-	driverName = "selectel"
-)
 
 func NewDriver(machineName string, storePath string) *Driver {
 	return &Driver{}
@@ -33,8 +30,8 @@ func (d *Driver) GetCreateFlags() []mcnflag.Flag {
 	}
 }
 
-func (d *Driver) GetSSHHostname() (string, error) {
-	return d.GetIP()
+func (d *Driver) DriverName() string {
+	return "selectel"
 }
 
 func (d *Driver) GetURL() (string, error) {
