@@ -28,6 +28,7 @@ type Client interface {
 	GetServerState(serverID string) (string, error)
 
 	AttachFloatingIP(serverID, floatingIP string) error
+	AttachFirstFreeFloatingIP(serverID string) (string, error)
 	GetAllFloatingIP() ([]floatingips.FloatingIP, error)
 
 	GetPublicKey(keyPairName string) ([]byte, error)
@@ -116,6 +117,19 @@ func (client *GenericClient) GetServerState(serverID string) (string, error) {
 
 func (client *GenericClient) SetServerPassword(serverID string, password string) error {
 	return servers.ChangeAdminPassword(client.Compute, serverID, password).ExtractErr()
+}
+
+func (client *GenericClient) AttachFirstFreeFloatingIP(serverID string) (string, error) {
+	fips, err := client.GetAllFloatingIP()
+	if err != nil {
+		return "", err
+	}
+	serverIP := fips[0].FloatingIP
+
+	if err := client.AttachFloatingIP(serverID, serverIP); err != nil {
+		return "", err
+	}
+	return serverIP, nil
 }
 
 func (client *GenericClient) AttachFloatingIP(serverID, floatingIP string) error {
