@@ -3,6 +3,8 @@ package openstack
 import (
 	"errors"
 	"fmt"
+	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -48,30 +50,37 @@ type GenericClient struct {
 	Network      *gophercloud.ServiceClient
 }
 
-func NewClient(opts gophercloud.AuthOptions, region string) (Client, error) {
-	endpointOpts := gophercloud.EndpointOpts{
-		Region: region,
-	}
+type ClientOpts struct {
+	Credentials  gophercloud.AuthOptions
+	EndpointOpts gophercloud.EndpointOpts
+	Proxy        *url.URL
+}
 
-	provider, err := openstack.AuthenticatedClient(opts)
+func NewClient(opts ClientOpts) (Client, error) {
+	provider, err := openstack.AuthenticatedClient(opts.Credentials)
 	if err != nil {
 		return nil, err
 	}
 
-	blockStorageClient, err := openstack.NewBlockStorageV2(provider, endpointOpts)
+	blockStorageClient, err := openstack.NewBlockStorageV2(provider, opts.EndpointOpts)
 	if err != nil {
 		return nil, err
 	}
 
-	computeClient, err := openstack.NewComputeV2(provider, endpointOpts)
+	computeClient, err := openstack.NewComputeV2(provider, opts.EndpointOpts)
 	if err != nil {
 		return nil, err
 	}
 
-	networkClient, err := openstack.NewNetworkV2(provider, endpointOpts)
+	networkClient, err := openstack.NewNetworkV2(provider, opts.EndpointOpts)
 	if err != nil {
 		return nil, err
 	}
+
+	provider.HTTPClient.Transport = &http.Transport{Proxy: http.ProxyURL(opts.Proxy)}
+	blockStorageClient.HTTPClient.Transport = &http.Transport{Proxy: http.ProxyURL(opts.Proxy)}
+	computeClient.HTTPClient.Transport = &http.Transport{Proxy: http.ProxyURL(opts.Proxy)}
+	networkClient.HTTPClient.Transport = &http.Transport{Proxy: http.ProxyURL(opts.Proxy)}
 
 	provider.UserAgent.Prepend(fmt.Sprintf("docker-machine/v%d", version.APIVersion))
 	return &GenericClient{
