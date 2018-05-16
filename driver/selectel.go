@@ -74,12 +74,6 @@ func (d *Driver) SetConfigFromFlags(opts drivers.DriverOptions) error {
 	return checkDriver(d)
 }
 
-func (d *Driver) Start() error {
-	// TODO (m.kalinin): require OS vars and power-on provided VM
-	panic("implement me")
 }
 
-func (d *Driver) Stop() error {
-	// TODO (m.kalinin): require OS vars and shutdown provided VM
-	panic("implement me")
 }
