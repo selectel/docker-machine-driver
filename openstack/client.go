@@ -12,6 +12,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/blockstorage/v2/volumes"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
 	cmp_fips "github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/floatingips"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
 )
@@ -28,6 +29,10 @@ type Client interface {
 
 	AttachFloatingIP(serverID, floatingIP string) error
 	GetAllFloatingIP() ([]floatingips.FloatingIP, error)
+
+	GetPublicKey(keyPairName string) ([]byte, error)
+	CreateKeyPair(name string, publicKey string) error
+	DeleteKeyPair(name string) error
 }
 
 type GenericClient struct {
@@ -131,4 +136,25 @@ func (client *GenericClient) GetAllFloatingIP() ([]floatingips.FloatingIP, error
 	}
 
 	return floatingips.ExtractFloatingIPs(allPages)
+}
+
+func (client *GenericClient) GetPublicKey(keyPairName string) ([]byte, error) {
+	keyPair, err := keypairs.Get(client.Compute, keyPairName).Extract()
+	if err != nil {
+		return nil, err
+	}
+	return []byte(keyPair.PublicKey), nil
+}
+
+func (client *GenericClient) CreateKeyPair(name string, publicKey string) error {
+	opts := keypairs.CreateOpts{
+		Name:      name,
+		PublicKey: publicKey,
+	}
+	return keypairs.Create(client.Compute, opts).Err
+}
+
+func (client *GenericClient) DeleteKeyPair(name string) error {
+	return keypairs.Delete(client.Compute, name).Err
+
 }
