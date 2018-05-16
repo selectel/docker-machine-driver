@@ -17,6 +17,7 @@ import (
 	cmp_fips "github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/floatingips"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/images"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
 )
@@ -41,6 +42,8 @@ type Client interface {
 
 	GetFlavorBy(name, id *string) (*flavors.Flavor, error)
 	CreateFlavor(name string, cpu, ram int) (*flavors.Flavor, error)
+
+	GetImageBy(name, id *string) (*images.Image, error)
 }
 
 type GenericClient struct {
@@ -48,6 +51,7 @@ type GenericClient struct {
 	Compute      *gophercloud.ServiceClient
 	BlockStorage *gophercloud.ServiceClient
 	Network      *gophercloud.ServiceClient
+	Image        *gophercloud.ServiceClient
 }
 
 type ClientOpts struct {
@@ -81,16 +85,23 @@ func NewClient(opts ClientOpts) (Client, error) {
 		return nil, err
 	}
 
+	imageClient, err := openstack.NewImageServiceV2(provider, opts.EndpointOpts)
+	if err != nil {
+		return nil, err
+	}
+
 	provider.HTTPClient.Transport = &http.Transport{Proxy: http.ProxyURL(opts.Proxy)}
 	blockStorageClient.HTTPClient.Transport = &http.Transport{Proxy: http.ProxyURL(opts.Proxy)}
 	computeClient.HTTPClient.Transport = &http.Transport{Proxy: http.ProxyURL(opts.Proxy)}
 	networkClient.HTTPClient.Transport = &http.Transport{Proxy: http.ProxyURL(opts.Proxy)}
+	imageClient.HTTPClient.Transport = &http.Transport{Proxy: http.ProxyURL(opts.Proxy)}
 
 	provider.UserAgent.Prepend(fmt.Sprintf(UserAgent, version.APIVersion))
 	return &GenericClient{
 		Compute:      computeClient,
 		BlockStorage: blockStorageClient,
 		Network:      networkClient,
+		Image:        imageClient,
 	}, nil
 }
 
@@ -227,4 +238,28 @@ func (client *GenericClient) GetFlavorBy(name, id *string) (*flavors.Flavor, err
 		return GetFlavorByName(client, *name)
 	}
 	return flavors.Get(client.Compute, *id).Extract()
+}
+
+func GetImageByName(client *GenericClient, name string) (*images.Image, error) {
+	imageID, err := images.IDFromName(client.Compute, name)
+	if err != nil {
+		return nil, err
+	}
+
+	image := images.Image{
+		Name: name,
+		ID:   imageID,
+	}
+	return &image, nil
+}
+
+func (client *GenericClient) GetImageBy(name, id *string) (*images.Image, error) {
+	if name == nil && id == nil {
+		return nil, errors.New("image name and image id can't be null")
+	}
+
+	if name != nil {
+		return GetImageByName(client, *name)
+	}
+	return images.Get(client.Image, *id).Extract()
 }
