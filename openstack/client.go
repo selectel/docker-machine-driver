@@ -16,6 +16,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
 	cmp_fips "github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/floatingips"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/startstop"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/images"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
@@ -31,6 +32,10 @@ type Client interface {
 	DeleteServer(serverID string) error
 	SetServerPassword(serverID string, password string) error
 	GetServerState(serverID string) (string, error)
+	StartServer(serverID string) error
+	RestartServer(serverID string) error
+	StopServer(serverID string) error
+	RemoveServer(serverID string) error
 
 	AttachFloatingIP(serverID, floatingIP string) error
 	AttachFirstFreeFloatingIP(serverID string) (string, error)
@@ -142,6 +147,25 @@ func (client *GenericClient) GetServerState(serverID string) (string, error) {
 		return "", err
 	}
 	return server.Status, err
+}
+
+func (client *GenericClient) StartServer(serverID string) error {
+	return startstop.Start(client.Compute, serverID).Err
+}
+
+func (client *GenericClient) RestartServer(serverID string) error {
+	opts := servers.RebootOpts{
+		Type: servers.SoftReboot,
+	}
+	return servers.Reboot(client.Compute, serverID, &opts).Err
+}
+
+func (client *GenericClient) StopServer(serverID string) error {
+	return startstop.Stop(client.Compute, serverID).Err
+}
+
+func (client *GenericClient) RemoveServer(serverID string) error {
+	return servers.Delete(client.Compute, serverID).Err
 }
 
 func (client *GenericClient) SetServerPassword(serverID string, password string) error {
