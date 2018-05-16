@@ -1,10 +1,12 @@
 package openstack
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/docker/machine/libmachine/mcnutils"
+	"github.com/docker/machine/libmachine/version"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/blockstorage/v2/volumes"
@@ -60,6 +62,7 @@ func NewClient(opts gophercloud.AuthOptions, region string) (Client, error) {
 		return nil, err
 	}
 
+	provider.UserAgent.Prepend(fmt.Sprintf("docker-machine/v%d", version.APIVersion))
 	return &GenericClient{
 		Compute:      computeClient,
 		BlockStorage: blockStorageClient,
