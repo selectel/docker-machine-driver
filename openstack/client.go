@@ -1,6 +1,7 @@
 package openstack
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
 	cmp_fips "github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/floatingips"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
 )
@@ -34,6 +36,9 @@ type Client interface {
 	GetPublicKey(keyPairName string) ([]byte, error)
 	CreateKeyPair(name string, publicKey string) error
 	DeleteKeyPair(name string) error
+
+	GetFlavorBy(name, id *string) (*flavors.Flavor, error)
+	CreateFlavor(name string, cpu, ram int) (*flavors.Flavor, error)
 }
 
 type GenericClient struct {
@@ -171,4 +176,42 @@ func (client *GenericClient) CreateKeyPair(name string, publicKey string) error 
 func (client *GenericClient) DeleteKeyPair(name string) error {
 	return keypairs.Delete(client.Compute, name).Err
 
+}
+
+func (client *GenericClient) CreateFlavor(name string, cpu, ram int) (*flavors.Flavor, error) {
+	// TODO (m.kalinin): extract for using local_gb
+	diskValue := 0
+	isPublic := false
+	opts := flavors.CreateOpts{
+		Name:     name,
+		RAM:      ram,
+		VCPUs:    cpu,
+		IsPublic: &isPublic,
+		Disk:     &diskValue,
+	}
+	return flavors.Create(client.Compute, opts).Extract()
+}
+
+func GetFlavorByName(client *GenericClient, name string) (*flavors.Flavor, error) {
+	flavorID, err := flavors.IDFromName(client.Compute, name)
+	if err != nil {
+		return nil, err
+	}
+
+	flavor := flavors.Flavor{
+		Name: name,
+		ID:   flavorID,
+	}
+	return &flavor, nil
+}
+
+func (client *GenericClient) GetFlavorBy(name, id *string) (*flavors.Flavor, error) {
+	if name == nil && id == nil {
+		return nil, errors.New("flavor name and flavor id can't be null")
+	}
+
+	if name != nil {
+		return GetFlavorByName(client, *name)
+	}
+	return flavors.Get(client.Compute, *id).Extract()
 }
