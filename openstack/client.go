@@ -56,6 +56,10 @@ type ClientOpts struct {
 	Proxy        *url.URL
 }
 
+const (
+	UserAgent = "docker-machine/v%d"
+)
+
 func NewClient(opts ClientOpts) (Client, error) {
 	provider, err := openstack.AuthenticatedClient(opts.Credentials)
 	if err != nil {
@@ -82,7 +86,7 @@ func NewClient(opts ClientOpts) (Client, error) {
 	computeClient.HTTPClient.Transport = &http.Transport{Proxy: http.ProxyURL(opts.Proxy)}
 	networkClient.HTTPClient.Transport = &http.Transport{Proxy: http.ProxyURL(opts.Proxy)}
 
-	provider.UserAgent.Prepend(fmt.Sprintf("docker-machine/v%d", version.APIVersion))
+	provider.UserAgent.Prepend(fmt.Sprintf(UserAgent, version.APIVersion))
 	return &GenericClient{
 		Compute:      computeClient,
 		BlockStorage: blockStorageClient,
