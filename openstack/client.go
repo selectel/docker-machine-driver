@@ -21,6 +21,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/images"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 )
 
 type Client interface {
@@ -49,6 +50,9 @@ type Client interface {
 	CreateFlavor(name string, cpu, ram int) (*flavors.Flavor, error)
 
 	GetImageBy(name, id *string) (*images.Image, error)
+
+	GetNetworkID(name string) (string, error)
+	GetAllNetworks() ([]networks.Network, error)
 }
 
 type GenericClient struct {
@@ -286,4 +290,20 @@ func (client *GenericClient) GetImageBy(name, id *string) (*images.Image, error)
 		return GetImageByName(client, *name)
 	}
 	return images.Get(client.Image, *id).Extract()
+}
+
+func (client *GenericClient) GetNetworkID(name string) (string, error) {
+	network, err := networks.Get(client.Network, name).Extract()
+	if err != nil {
+		return "", err
+	}
+	return network.ID, nil
+}
+
+func (client *GenericClient) GetAllNetworks() ([]networks.Network, error) {
+	page, err := networks.List(client.Network, networks.ListOpts{}).AllPages()
+	if err != nil {
+		return nil, err
+	}
+	return networks.ExtractNetworks(page)
 }
