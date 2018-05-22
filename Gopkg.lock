@@ -56,6 +56,7 @@
     "openstack/identity/v3/tokens",
     "openstack/networking/v2/extensions/layer3/floatingips",
     "openstack/networking/v2/networks",
+    "openstack/networking/v2/subnets",
     "openstack/utils",
     "pagination"
   ]
@@ -93,6 +94,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "6cf0cd4b538e34a7cd4b2d31ba9873ddae041ab21c717b4a3822c60615a2c81c"
+  inputs-digest = "c08f377420f9bbe250dc14257970ec58bf52147a35397f2b0b625639d691fd65"
   solver-name = "gps-cdcl"
   solver-version = 1

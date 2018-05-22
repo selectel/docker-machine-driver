@@ -77,9 +77,6 @@ func (d *Driver) checkConfig() error {
 	if d.ImageName != "" && d.ImageID != "" {
 		return fmt.Errorf(errorExclusiveOptions, "Image name", "Image id")
 	}
-	if d.NetworkID == "" {
-		return fmt.Errorf(errorMandatoryOption, "Network id", "--os-net-id")
-	}
 	if _, err := os.Stat(d.SSHKeyPath); err != nil {
 		return fmt.Errorf(errorMandatoryEnvOrOption, "KeyPairPath", "SEL_SSH_PRIVATE_KEY_PATH", "--sel-ssh-private-key-path")
 	}
@@ -131,6 +128,24 @@ func (d *Driver) resolveNamesAndIds() error {
 
 		d.ImageID = image.ID
 		log.Info("Got id", d.ImageID)
+	}
+
+	if d.NetworkID == "" {
+		subnets, err := d.client.GetSubnets()
+		if err != nil {
+			return err
+		}
+
+		switch len(subnets) {
+		case 0:
+			return errors.New("Project not contains any network")
+		case 1:
+			d.NetworkID = subnets[0].NetworkID
+			log.Info("Network isn't provided. Will use default for project", d.NetworkID)
+		default:
+			log.Warnf("Found %d networks in project", len(subnets))
+			return fmt.Errorf(errorMandatoryOption, "Network id", "--os-net-id")
+		}
 	}
 	return nil
 }
