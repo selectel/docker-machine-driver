@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
-	"github.com/docker/machine/libmachine/mcnutils"
 	"github.com/docker/machine/libmachine/version"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
@@ -123,18 +121,7 @@ func (client *GenericClient) DeleteVolume(volumeID string) error {
 }
 
 func (client *GenericClient) WaitForVolumeStatus(volumeID, status string) error {
-	return mcnutils.WaitForSpecificOrError(func() (bool, error) {
-		current, err := volumes.Get(client.BlockStorage, volumeID).Extract()
-		if err != nil {
-			return true, err
-		}
-
-		if strings.ToLower(current.Status) == status {
-			return true, nil
-		}
-
-		return false, nil
-	}, 10, time.Second)
+	return volumes.WaitForStatus(client.BlockStorage, volumeID, status, int(time.Minute))
 }
 
 func (client *GenericClient) BootInstanceFromVolume(opts servers.CreateOptsBuilder) (*servers.Server, error) {
