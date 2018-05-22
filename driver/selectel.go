@@ -6,6 +6,8 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"os/user"
+
 	"github.com/docker/machine/libmachine/drivers"
 	"github.com/docker/machine/libmachine/log"
 	"github.com/docker/machine/libmachine/mcnflag"
@@ -20,9 +22,9 @@ import (
 
 const (
 	// ssh
-	defaultSSHUser        = "root"
-	defaultSSHPort        = 22
-	defaultKeyPairName    = "docker-machine-key"
+	defaultSSHUser     = "root"
+	defaultSSHPort     = 22
+	defaultKeyPairName = "docker-machine-key"
 
 	// volume
 	defaultVolumeName = "volume for %s"
@@ -267,6 +269,12 @@ func (d *Driver) SetConfigFromFlags(opts drivers.DriverOptions) error {
 	}
 	if len(d.VolumeType) == 0 {
 		d.VolumeType = fmt.Sprintf(defaultVolumeType, d.AvailabilityZone)
+	}
+	if d.SSHKeyPath == "" {
+		currenctUser, _ := user.Current()
+		d.SSHKeyPath = fmt.Sprintf("%s/.ssh/id_rsa", currenctUser.HomeDir)
+		log.Infof("Path to ida_rsa isn't provided. Assuming an existing key at the default location '%s'", d.SSHKeyPath)
+		d.SSHPublicKeyPath = fmt.Sprintf("%s.pub", d.SSHKeyPath)
 	}
 	return d.checkConfig()
 }

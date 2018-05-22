@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"os"
 
 	"github.com/docker/machine/libmachine/log"
 	"github.com/docker/machine/libmachine/mcnutils"
@@ -79,8 +80,8 @@ func (d *Driver) checkConfig() error {
 	if d.NetworkID == "" {
 		return fmt.Errorf(errorMandatoryOption, "Network id", "--os-net-id")
 	}
-	if d.SSHKeyPath == "" {
-		return fmt.Errorf(errorMandatoryEnvOrOption, "KeyPairName", "SEL_SSH_PRIVATE_KEY_PATH", "--sel-ssh-private-key-path")
+	if _, err := os.Stat(d.SSHKeyPath); err != nil {
+		return fmt.Errorf(errorMandatoryEnvOrOption, "KeyPairPath", "SEL_SSH_PRIVATE_KEY_PATH", "--sel-ssh-private-key-path")
 	}
 	return nil
 }
